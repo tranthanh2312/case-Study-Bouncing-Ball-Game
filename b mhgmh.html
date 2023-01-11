@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+
+<center>
+  <canvas id="myCanvas" style="border:5px solid cadetblue"></canvas>
+</center>
+<script>
+  let canvas = document.getElementById("myCanvas");
+  let ctx = canvas.getContext('2d');
+  canvas.height = 710;
+  canvas.width = 530;
+
+  const bgImage = new Image();
+  bgImage.src = 'images/bg.png'
+
+  const readyImage = new Image();
+  readyImage.src = 'images/getReady.png'
+
+  const flappyBirdImage = new Image();
+  flappyBirdImage.src = 'images/flappyBird.png'
+
+  const groundImage = new Image();
+  groundImage.src = 'images/ground.png'
+
+  const northPipeImage = new Image();
+  northPipeImage.src = 'images/pipeNorth.png'
+
+  const southPipeImage = new Image();
+  southPipeImage.src = 'images/pipeSouth.png'
+
+  const birdTopImage = new Image();
+  birdTopImage.src = 'images/birdTop.png'
+
+  const birdImage = new Image();
+  birdImage.src = 'images/bird1.png'
+
+  const birdBotImage = new Image();
+  birdBotImage.src = 'images/birdBot.png'
+
+  let game = "start";
+  let gameOver = false;
+
+  //background
+  const bg = {
+    cX: 0,
+    cY: 0,
+    cW: 229,
+    cH: 625,
+    draw: function () {
+      ctx.beginPath();
+      ctx.drawImage(bgImage, this.cX, this.cY, this.cW, this.cH);
+      ctx.drawImage(bgImage, this.cX + 228, this.cY, this.cW, this.cH);
+      ctx.drawImage(bgImage, this.cX + 456, this.cY, this.cW, this.cH);
+    }
+  }
+
+  //start screen
+  const start = {
+    draw: function () {
+      ctx.beginPath();
+      ctx.drawImage(flappyBirdImage, canvas.width / 2 - 193 / 2, 100);
+      ctx.drawImage(readyImage, canvas.width / 2 - 231 / 2, 200);
+      ctx.beginPath();
+      ctx.font = '50px Arial';
+      ctx.fillStyle = "#FFFF00"
+      ctx.shadowBlur = 10;
+      ctx.fontWeight = 900;
+      ctx.fillText("=>Click", 210, 350);
+      ctx.strokeText("=>Click", 210, 350);
+    }
+  }
+
+  //class ground
+  function Ground(cX, cY) {
+    this.cX = cX;
+    this.cY = cY;
+    this.cW = 215;
+    this.cH = 143;
+    this.dX = -2;
+
+    this.draw = function () {
+      ctx.beginPath();
+      ctx.drawImage(groundImage, this.cX, this.cY, this.cW, this.cH);
+    }
+  }
+
+  let arrGround = [];
+  for (let i = 0; i < 4; i++) {
+    let ground = new Ground(i * 215, 625);
+    arrGround.push(ground);
+  }
+
+  function drawArrGround() {
+    for (let i = 0; i < arrGround.length; i++) {
+      arrGround[i].draw();
+    }
+  }
+
+  function updateArrGround() {
+    for (let i = 0; i < arrGround.length; i++) {
+      arrGround[i].cX += arrGround[i].dX;
+    }
+    if (arrGround[0].cX <= -336) {
+      arrGround.splice(0, 1);
+      let ground = new Ground(arrGround[2].cX + 215, 625);
+      arrGround.push(ground);
+    }
+
+  }
+
+  //class pipe
+  function Pipe(cX, cY, space) {
+    this.cX = cX;
+    this.cY = cY;
+    this.space = space;
+    this.cW = 82;
+    this.cH = 710;
+    this.dX = -2;
+
+    this.draw = function () {
+      ctx.beginPath();
+      console.log(this.cX);
+      ctx.drawImage(northPipeImage, this.cX, this.cY, this.cW, this.cH);
+      ctx.drawImage(southPipeImage, this.cX, this.cY + this.cH + this.space, this.cW, this.cH);
+    }
+  }
+
+  function random(min, max) {
+    return Math.ceil(Math.random() * (max - min) + min);
+  }
+
+  let arrPipes = [];
+
+  function addArrPipes() {
+    for (let i = 1; i < 4; i++) {
+      let pipe = new Pipe(random(530, 600) * i, random(-660, -300), 300);
+      arrPipes.push(pipe);
+    }
+  }
+
+  addArrPipes();
+
+  function drawArrPipes() {
+    for (let i = 0; i < arrPipes.length; i++) {
+      arrPipes[i].draw();
+    }
+  }
+
+  function updateArrPipes() {
+    for (let i = 0; i < arrPipes.length; i++) {
+      arrPipes[i].cX += arrPipes[i].dX;
+    }
+    if (arrPipes[0].cX <= -arrPipes[0].cW) {
+      arrPipes.splice(0, 1);
+      let pipe = new Pipe(arrPipes[arrPipes.length - 1].cX + random(400, 500), random(-660, -300), random(250, 300));
+      arrPipes.push(pipe);
+    }
+  }
+
+  // bird
+  function Bird(cX, cY) {
+    this.cX = cX;
+    this.cY = cY;
+    this.cW = 80;
+    this.cH = 56;
+    this.speed = 0;
+    this.a = 0.5;
+    this.image = birdImage;
+
+    this.draw = function () {
+      ctx.beginPath();
+      ctx.drawImage(this.image, this.cX, this.cY, this.cW, this.cH);
+    }
+    this.update = function () {
+      this.speed += this.a;
+      this.cY += this.speed;
+    }
+  }
+
+  let bird = new Bird(130, 300);
+  canvas.addEventListener("click", moveBird);
+
+  function moveBird() {
+    if (game == "start") {
+      game = "play";
+    }
+    if (game == "play") {
+      bird.speed = -8;
+      bird.image = birdTopImage;
+    }
+    if (game == "end") {
+      if(event.offsetX>110 && event.offsetX<400 && event.offsetY>355 && event.offsetY<405){
+        score.value = 0;
+        arrPipes = [];
+        addArrPipes();
+        bird.speed = 0;
+        bird.cY = 300;
+        gameOver=false;
+        game = "start"
+      }
+
+    }
+  }
+
+  // class score
+  function Score(value, cX, cY) {
+    this.value = value;
+    this.cX = cX;
+    this.cY = cY;
+    this.draw = function () {
+      ctx.beginPath();
+      ctx.font = '100px Arial';
+      ctx.fillStyle = "#FDEEF4"
+      ctx.shadowBlur = 10;
+      ctx.fontWeight = 900;
+      ctx.fillText(this.value, this.cX, this.cY);
+      ctx.strokeText(this.value, this.cX, this.cY);
+    }
+  }
+
+  let score = new Score(0, canvas.width / 2 - 10, 200);
+
+  function draw() {
+    bg.draw();
+    drawArrPipes();
+    drawArrGround();
+    if (game == "start") {
+      start.draw();
+    }
+    if (game == "play") {
+      score.draw();
+    }
+    if (game == "end") {
+      ctx.beginPath();
+      ctx.font = '50px Arial';
+      ctx.fillStyle = "#FFFF00"
+      ctx.shadowBlur = 10;
+      ctx.fontWeight = 900;
+      ctx.fillText("Your score: " + score.value, 110, 200);
+      ctx.strokeText("Your score: " + score.value, 110, 200);
+      ctx.fillText("GAME OVER", 100, 250);
+      ctx.strokeText("GAME OVER", 100, 250);
+      ctx.fillStyle = "black"
+      ctx.strokeText("PLAY AGAIN", 110, 400);
+      ctx.fillText("PLAY AGAIN", 110, 400);
+      ctx.strokeRect(110,355,300,50);
+
+      ctx.font = '20px Arial';
+      ctx.fillStyle = "black"
+      ctx.strokeText("click here", 210, 350);
+      ctx.fillText("click here", 210, 350);
+    }
+
+    bird.draw();
+  }
+
+  function update() {
+    if (game == "play") {
+      updateArrPipes();
+      updateArrGround();
+      bird.update();
+      //roi xuong dat
+      if (bird.cY + bird.cH > 625) {
+        bird.image = birdBotImage;
+        bird.speed = 0;
+        bird.cY = 600;
+        game = "end"
+        gameOver = true;
+      }
+      // va cham duong ong
+      if (((bird.cX + bird.cW) >= arrPipes[0].cX &&
+                      (bird.cX + bird.cW) <= (arrPipes[0].cX + arrPipes[0].cW) &&
+                      bird.cY >= arrPipes[0].cY &&
+                      bird.cY <= arrPipes[0].cY + arrPipes[0].cH
+              ) ||
+              ((bird.cX + bird.cW) >= arrPipes[0].cX &&
+                      (bird.cX + bird.cW) <= (arrPipes[0].cX + arrPipes[0].cW) &&
+                      (bird.cY + bird.cH) >= (arrPipes[0].cY + arrPipes[0].cH + arrPipes[0].space) &&
+                      (bird.cY + bird.cH) <= (arrPipes[0].cY + arrPipes[0].cH + arrPipes[0].space + arrPipes[0].cH)
+              )) {
+        bird.image = birdBotImage;
+        bird.speed = 0;
+        bird.cY = 600;
+        game = "end"
+        gameOver = true;
+        console.log(bird.cX + bird.cW)
+        console.log(arrPipes[0].cX)
+        console.log(bird.cY)
+        console.log(arrPipes[0].cY + arrPipes[0].cH)
+      }
+      if (arrPipes[0].cX > 140 && arrPipes[0].cX <= 142) {
+        score.value++
+      }
+    }
+  }
+
+  function animate() {
+    //if (!gameOver) {
+    setTimeout(animate, 1000 / 60);
+    // }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    draw();
+    update();
+  }
+
+  animate();
+</script>
+</body>
+</html>
